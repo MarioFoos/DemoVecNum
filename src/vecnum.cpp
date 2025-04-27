@@ -7,16 +7,22 @@
 using namespace std;
 
 template <typename T, typename Enable>
-vecnum<T, Enable>::vecnum(std::size_t size) : vecnum(size, static_cast<T>(0))
+vecnum<T, Enable>::vecnum(std::size_t size) : _size(size), _data(new T[size])
 {
+	srand(static_cast<uint32_t>(time(nullptr)));
+	fill(static_cast<T>(0));
 };
 
 template <typename T, typename Enable>
-vecnum<T, Enable>::vecnum(std::size_t size, T init): _size(size), _data(nullptr)
+vecnum<T, Enable>::vecnum(const vecnum<T>& src) : vecnum(src._size)
 {
-	srand(static_cast<uint32_t>(time(0)));
-	create(_size);
-	fill(init);
+	std::copy(src._data, src._data + src._size, _data);
+};
+
+template <typename T, typename Enable>
+vecnum<T, Enable>::vecnum(const T* src, std::size_t size) : vecnum(size)
+{
+	std::copy(src, src + size, _data);
 };
 
 template <typename T, typename Enable>
@@ -41,16 +47,12 @@ T& vecnum<T, Enable>::operator[](std::size_t pos) const
 };
 
 template <typename T, typename Enable>
-vecnum<T>& vecnum<T, Enable>::operator=(const vecnum<T>& other)
+vecnum<T> vecnum<T, Enable>::operator=(const vecnum<T>& other)
 {
 	if(this != &other)
 	{
-		create(other._size);
-		__VECNUM_PROC func = [&other, this](std::size_t pos, T &value)
-		{
-			_data[pos] = other._data[pos];
-		};
-		procVec(func);
+		_size = other._size;
+	    std::copy(other._data, other._data + other._size, _data);
 	}
 	return *this;
 }
@@ -267,7 +269,7 @@ void vecnum<T, Enable>::fillrnd()
 {
 	__VECNUM_PROC func = [](std::size_t pos, T &v)
 	{
-		double range = static_cast<double>(rand())/RAND_MAX*2 - 1;
+		double range = static_cast<double>(rand())/RAND_MAX;
 		v = static_cast<T>(range*100);
 	};
 
@@ -275,18 +277,14 @@ void vecnum<T, Enable>::fillrnd()
 };
 
 template <typename T, typename Enable>
-std::string vecnum<T, Enable>::to_string()
+std::string vecnum<T, Enable>::to_string() const
 {
 	std::string out;
 
-	__VECNUM_PROC func = [&out, this](std::size_t pos, T &value)
+	out.append(1, '{');
+	for(std::size_t pos = 0; pos < _size; ++pos)
 	{
-		std::string str = std::to_string(value);
-		if(pos == 0)
-		{
-			out.append(1, '{');
-		}
-		out.append(str);
+		out.append(std::to_string(_data[pos]));
 		if(pos == _size - 1)
 		{
 			out.append(1, '}');
@@ -295,9 +293,7 @@ std::string vecnum<T, Enable>::to_string()
 		{
 			out.append(", ");
 		}
-	};
-	procVec(func);
-
+	}
 	return out;
 };
 
